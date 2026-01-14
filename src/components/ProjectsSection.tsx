@@ -7,18 +7,11 @@ import { createClient } from "@supabase/supabase-js";
 /* ---------------- CONFIG ---------------- */
 const GITHUB_USERNAME = "tejathotadev";
 
-/**
- * ⚠️ Move these to .env later
- */
+/* ⚠️ Move to .env later */
 const supabase = createClient(
   "https://hgrznepcjhnxjszybqfw.supabase.co",
   "sb_publishable_dcAhAAWei7fpbut7HGPQSw_mrONVVYj"
 );
-
-/**
- * ⚠️ Frontend admin secret (OK for portfolio)
- */
-const ADMIN_SECRET = "teja-admin-2026";
 
 /* ---------------- COMPONENT ---------------- */
 const ProjectsSection = () => {
@@ -26,11 +19,8 @@ const ProjectsSection = () => {
   const [githubProjects, setGithubProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminInput, setAdminInput] = useState("");
 
-
-  /* Admin modal state */
+  /* Add Project Modal */
   const [showForm, setShowForm] = useState(false);
 
   /* Form fields */
@@ -40,14 +30,23 @@ const ProjectsSection = () => {
   const [githubUrl, setGithubUrl] = useState("");
   const [demoUrl, setDemoUrl] = useState("");
 
-  /* ---------------- CHECK ADMIN SESSION ---------------- */
+  /* ---------------- ADMIN STATE (GLOBAL SYNC) ---------------- */
   useEffect(() => {
-    if (sessionStorage.getItem("portfolio-admin") === "true") {
-      setIsAdmin(true);
-    }
+    const syncAdmin = () => {
+      setIsAdmin(sessionStorage.getItem("portfolio-admin") === "true");
+    };
+
+    syncAdmin();
+    window.addEventListener("admin-change", syncAdmin);
+    window.addEventListener("storage", syncAdmin);
+
+    return () => {
+      window.removeEventListener("admin-change", syncAdmin);
+      window.removeEventListener("storage", syncAdmin);
+    };
   }, []);
 
-  /* ---------------- FETCH MANUAL PROJECTS (SUPABASE) ---------------- */
+  /* ---------------- FETCH MANUAL PROJECTS ---------------- */
   const fetchManualProjects = async () => {
     const { data, error } = await supabase
       .from("projects")
@@ -55,27 +54,28 @@ const ProjectsSection = () => {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      const mapped: Project[] = data.map((p: any) => ({
-        title: p.title,
-        description: p.description,
-        techStack: p.tech_stack || [],
-        githubUrl: p.github_url || undefined,
-        demoUrl: p.demo_url || undefined,
-        isManual: true,
-      }));
-      setManualProjects(mapped);
+      setManualProjects(
+        data.map((p: any) => ({
+          title: p.title,
+          description: p.description,
+          techStack: p.tech_stack || [],
+          githubUrl: p.github_url || undefined,
+          demoUrl: p.demo_url || undefined,
+          isManual: true,
+        }))
+      );
     }
   };
 
   /* ---------------- FETCH GITHUB PROJECTS ---------------- */
   const fetchGithubProjects = async () => {
-    try {
-      const res = await fetch(
-        `https://api.github.com/users/${GITHUB_USERNAME}/repos`
-      );
-      const data = await res.json();
+    const res = await fetch(
+      `https://api.github.com/users/${GITHUB_USERNAME}/repos`
+    );
+    const data = await res.json();
 
-      const mapped: Project[] = (data as GitHubRepo[])
+    setGithubProjects(
+      (data as GitHubRepo[])
         .filter(repo => !repo.fork)
         .sort(
           (a, b) =>
@@ -89,12 +89,8 @@ const ProjectsSection = () => {
           githubUrl: repo.html_url,
           demoUrl: repo.homepage || undefined,
           isManual: false,
-        }));
-
-      setGithubProjects(mapped);
-    } catch (e) {
-      console.error("GitHub fetch error", e);
-    }
+        }))
+    );
   };
 
   /* ---------------- INITIAL LOAD ---------------- */
@@ -132,14 +128,6 @@ const ProjectsSection = () => {
     await fetchManualProjects();
   };
 
-  /* ---------------- LOGOUT ADMIN ---------------- */
-  const handleLogout = () => {
-    sessionStorage.removeItem("portfolio-admin");
-    setIsAdmin(false);
-    window.dispatchEvent(new Event("admin-change"));
-  };
-
-  /* ---------------- MERGED PROJECTS ---------------- */
   const projects: Project[] = [...manualProjects, ...githubProjects];
 
   return (
@@ -162,78 +150,14 @@ const ProjectsSection = () => {
           </p>
         </motion.div>
 
-        {!isAdmin && (
-  <div className="flex justify-center mb-8">
-    <button
-      onClick={() => setShowAdminLogin(true)}
-      className="px-5 py-2 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition"
-    >
-      Admin Login
-    </button>
-  </div>
-)}
-
-{showAdminLogin && (
-  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-    <div className="bg-background rounded-xl p-6 w-full max-w-sm">
-      <h3 className="text-lg font-semibold mb-4">Admin Login</h3>
-
-      <input
-        type="password"
-        className="w-full mb-4 p-2 rounded border bg-background text-foreground"
-        placeholder="Enter admin secret"
-        value={adminInput}
-        onChange={e => setAdminInput(e.target.value)}
-      />
-
-      <div className="flex gap-3">
-        <button
-          onClick={() => {
-            setShowAdminLogin(false);
-            setAdminInput("");
-          }}
-          className="flex-1 border rounded py-2"
-        >
-          Cancel
-        </button>
-
-        <button
-          onClick={() => {
-            if (adminInput === ADMIN_SECRET) {
-              sessionStorage.setItem("portfolio-admin", "true");
-              setIsAdmin(true);
-              window.dispatchEvent(new Event("admin-change"));
-              setShowAdminLogin(false);
-              setAdminInput("");
-            } else {
-              alert("Invalid admin secret ❌");
-            }
-          }}
-          className="flex-1 bg-primary text-white rounded py-2"
-        >
-          Login
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
-        {/* Admin Actions */}
+        {/* ADMIN ACTION (UI UNCHANGED) */}
         {isAdmin && (
-          <div className="flex justify-center gap-4 mb-10">
+          <div className="flex justify-center mb-10">
             <button
               onClick={() => setShowForm(true)}
               className="px-6 py-3 rounded-lg bg-primary text-white font-medium hover:opacity-90 transition"
             >
               + Add Project
-            </button>
-
-            <button
-              onClick={handleLogout}
-              className="px-6 py-3 rounded-lg border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition"
-            >
-              Logout Admin
             </button>
           </div>
         )}
@@ -259,7 +183,7 @@ const ProjectsSection = () => {
           </div>
         )}
 
-        {/* Admin Modal */}
+        {/* ADD PROJECT MODAL — UI 100% SAME */}
         {showForm && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-background rounded-xl p-6 w-full max-w-md">
