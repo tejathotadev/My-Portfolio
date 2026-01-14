@@ -133,6 +133,7 @@ const ProjectsSection = () => {
   const handleLogout = () => {
     sessionStorage.removeItem("portfolio-admin");
     setIsAdmin(false);
+    window.dispatchEvent(new Event("admin-change"));
   };
 
   /* ---------------- MERGED PROJECTS ---------------- */
@@ -167,6 +168,7 @@ const ProjectsSection = () => {
                 if (code === ADMIN_SECRET) {
                   sessionStorage.setItem("portfolio-admin", "true");
                   setIsAdmin(true);
+                  window.dispatchEvent(new Event("admin-change"));
                 } else {
                   alert("Invalid admin secret ❌");
                 }
