@@ -26,6 +26,9 @@ const ProjectsSection = () => {
   const [githubProjects, setGithubProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminInput, setAdminInput] = useState("");
+
 
   /* Admin modal state */
   const [showForm, setShowForm] = useState(false);
@@ -159,26 +162,62 @@ const ProjectsSection = () => {
           </p>
         </motion.div>
 
-        {/* Admin Login */}
         {!isAdmin && (
-          <div className="flex justify-center mb-8">
-            <button
-              onClick={() => {
-                const code = prompt("Enter admin secret");
-                if (code === ADMIN_SECRET) {
-                  sessionStorage.setItem("portfolio-admin", "true");
-                  setIsAdmin(true);
-                  window.dispatchEvent(new Event("admin-change"));
-                } else {
-                  alert("Invalid admin secret ❌");
-                }
-              }}
-              className="px-5 py-2 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition"
-            >
-              Admin Login
-            </button>
-          </div>
-        )}
+  <div className="flex justify-center mb-8">
+    <button
+      onClick={() => setShowAdminLogin(true)}
+      className="px-5 py-2 rounded-lg border border-primary text-primary hover:bg-primary hover:text-white transition"
+    >
+      Admin Login
+    </button>
+  </div>
+)}
+
+{showAdminLogin && (
+  <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="bg-background rounded-xl p-6 w-full max-w-sm">
+      <h3 className="text-lg font-semibold mb-4">Admin Login</h3>
+
+      <input
+        type="password"
+        className="w-full mb-4 p-2 rounded border bg-background text-foreground"
+        placeholder="Enter admin secret"
+        value={adminInput}
+        onChange={e => setAdminInput(e.target.value)}
+      />
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            setShowAdminLogin(false);
+            setAdminInput("");
+          }}
+          className="flex-1 border rounded py-2"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={() => {
+            if (adminInput === ADMIN_SECRET) {
+              sessionStorage.setItem("portfolio-admin", "true");
+              setIsAdmin(true);
+              window.dispatchEvent(new Event("admin-change"));
+              setShowAdminLogin(false);
+              setAdminInput("");
+            } else {
+              alert("Invalid admin secret ❌");
+            }
+          }}
+          className="flex-1 bg-primary text-white rounded py-2"
+        >
+          Login
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
         {/* Admin Actions */}
         {isAdmin && (
