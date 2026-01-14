@@ -1,73 +1,56 @@
-# Welcome to your Lovable project
+# 🚀 Admin-Controlled Portfolio Website
 
-## Project info
+A modern, dynamic, and admin-aware portfolio website built using **React** and **TypeScript**.  
+This project goes beyond a static portfolio by introducing **secure, role-based interactivity** while remaining fully frontend-driven and production-safe.
 
-**URL**: https://lovable.dev/projects/4095e35a-799a-41cf-8fb4-1dba123391ba
+---
 
-## How can I edit this code?
+## ✨ Key Features
 
-There are several ways of editing your application.
+### 🔄 Auto-Synced GitHub Projects
+- Public repositories are fetched dynamically using the GitHub API  
+- Ensures the portfolio always reflects the latest public work  
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/4095e35a-799a-41cf-8fb4-1dba123391ba) and start prompting.
+### 🔒 Private Project Support (Admin Only)
+- Manually add private or confidential projects  
+- Hidden from visitors  
+- Fully manageable by the portfolio owner  
 
-Changes made via Lovable will be committed automatically to this repo.
+---
 
-**Use your preferred IDE**
+### 🛡️ Admin Mode with Secure Access
+- Admin features are protected using a **secret-key-based admin mode**  
+- Visitors cannot add, edit, or delete any content  
+- Admin state is isolated to the owner’s browser using **localStorage**  
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 🧠 Dynamic Skills Management
+- Static core skills remain unchanged  
+- Admin can:
+  - Add new skill categories  
+  - Add new skills to existing categories  
+- All updates persist locally without a backend  
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### 🎨 Clean UI & Architecture
+- Clear separation between static and dynamic data  
+- Role-based UI rendering (**Admin vs Visitor**)  
+- Dark-mode friendly interface  
+- Smooth animations using **Framer Motion**  
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+> While AI tools assisted in early UI exploration, the system architecture, state management, persistence logic, and admin controls were manually designed and implemented.
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## 🧩 Tech Stack
 
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/4095e35a-799a-41cf-8fb4-1dba123391ba) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- **Frontend:** React, TypeScript  
+- **Styling:** Tailwind CSS  
+- **Animations:** Framer Motion  
+- **Icons:** Lucide Icons  
+- **State & Storage:** React Hooks + localStorage  
+- **API:** GitHub REST API  
