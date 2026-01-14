@@ -2,15 +2,14 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-  Globe,
-  Brain,
-  Server,
-  Code,
-  Bot,
-  Plus,
-  Lock,
-} from "lucide-react";
+import { Plus, Lock, Bot } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
+
+/* ---------------- SUPABASE ---------------- */
+const supabase = createClient(
+  "https://hgrznepcjhnxjszybqfw.supabase.co",
+  "sb_publishable_dcAhAAWei7fpbut7HGPQSw_mrONVVYj"
+);
 
 /* ---------------- TYPES ---------------- */
 interface SkillCategory {
@@ -22,19 +21,39 @@ interface SkillCategory {
 
 /* ---------------- COMPONENT ---------------- */
 const SkillsSection = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
+  /* ---------- ADMIN STATE (SYNCED) ---------- */
+const [isAdmin, setIsAdmin] = useState(false);
 
-  // manual categories
+useEffect(() => {
+  const syncAdmin = () => {
+    setIsAdmin(sessionStorage.getItem("portfolio-admin") === "true");
+  };
+
+  // initial check
+  syncAdmin();
+
+  // listen for custom admin changes
+  window.addEventListener("admin-change", syncAdmin);
+
+  // OPTIONAL: keep storage listener for other tabs
+  window.addEventListener("storage", syncAdmin);
+
+  return () => {
+    window.removeEventListener("admin-change", syncAdmin);
+    window.removeEventListener("storage", syncAdmin);
+  };
+}, []);
+
+
+  /* ---------- SUPABASE DATA ---------- */
+  const [extraSkills, setExtraSkills] = useState<Record<string, string[]>>({});
   const [manualCategories, setManualCategories] = useState<SkillCategory[]>([]);
 
-  // extra skills for existing categories
-  const [extraSkills, setExtraSkills] = useState<Record<string, string[]>>({});
-
-  // modal states
+  /* ---------- MODALS ---------- */
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [showAddSkill, setShowAddSkill] = useState(false);
 
-  // form states
+  /* ---------- FORMS ---------- */
   const [categoryTitle, setCategoryTitle] = useState("");
   const [categoryDesc, setCategoryDesc] = useState("");
   const [categorySkills, setCategorySkills] = useState("");
@@ -42,41 +61,13 @@ const SkillsSection = () => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [newSkill, setNewSkill] = useState("");
 
-  /* ---------------- ADMIN CHECK ---------------- */
-  useEffect(() => {
-    if (localStorage.getItem("portfolio-admin") === "true") {
-      setIsAdmin(true);
-    }
-  }, []);
-
-  /* ---------------- LOAD MANUAL CATEGORIES ---------------- */
-  useEffect(() => {
-    const saved = localStorage.getItem("manual-skill-categories");
-    if (saved) {
-      const parsed: SkillCategory[] = JSON.parse(saved);
-      const migrated = parsed.map(c => ({ ...c, isManual: true }));
-      setManualCategories(migrated);
-      localStorage.setItem(
-        "manual-skill-categories",
-        JSON.stringify(migrated)
-      );
-    }
-  }, []);
-
-  /* ---------------- LOAD EXTRA SKILLS ---------------- */
-  useEffect(() => {
-    const saved = localStorage.getItem("extra-skills");
-    if (saved) {
-      setExtraSkills(JSON.parse(saved));
-    }
-  }, []);
-
-  /* ---------------- STATIC SKILLS (UNCHANGED) ---------------- */
+  /* ---------- STATIC CATEGORIES (UNCHANGED) ---------- */
   const staticCategories: SkillCategory[] = [
     {
       title: "Web Development",
       skills: ["React", "Node.js", "Express", "MongoDB", "JavaScript", "TypeScript"],
-      description: "Building modern, scalable web applications with the MERN stack",
+      description:
+        "Building modern, scalable web applications with the MERN stack",
     },
     {
       title: "AI / ML / DL",
@@ -95,53 +86,86 @@ const SkillsSection = () => {
     },
   ];
 
-  /* ---------------- SAVE NEW CATEGORY ---------------- */
-  const handleAddCategory = () => {
+  /* ---------- FETCH SKILLS ---------- */
+  const fetchSkills = async () => {
+    const { data } = await supabase.from("skills").select("*");
+    if (!data) return;
+
+    const extras: Record<string, string[]> = {};
+    const manuals: SkillCategory[] = [];
+
+    data.forEach((row: any) => {
+      const isStatic = staticCategories.some(c => c.title === row.title);
+
+      if (isStatic) {
+        extras[row.title] = row.skills || [];
+      } else {
+        manuals.push({
+          title: row.title,
+          description: row.description,
+          skills: row.skills || [],
+          isManual: true,
+        });
+      }
+    });
+
+    setExtraSkills(extras);
+    setManualCategories(manuals);
+  };
+
+  useEffect(() => {
+    fetchSkills();
+  }, []);
+
+  /* ---------- ADD CATEGORY (ADMIN ONLY) ---------- */
+  const handleAddCategory = async () => {
+    if (!isAdmin) {
+      alert("Admin access required ❌");
+      return;
+    }
+
     if (!categoryTitle || !categorySkills) return;
 
-    const newCategory: SkillCategory = {
+    await supabase.from("skills").insert({
       title: categoryTitle,
       description: categoryDesc,
       skills: categorySkills.split(",").map(s => s.trim()),
-      isManual: true,
-    };
+    });
 
-    const updated = [...manualCategories, newCategory];
-    setManualCategories(updated);
-    localStorage.setItem(
-      "manual-skill-categories",
-      JSON.stringify(updated)
-    );
-
+    await fetchSkills();
+    setShowAddCategory(false);
     setCategoryTitle("");
     setCategoryDesc("");
     setCategorySkills("");
-    setShowAddCategory(false);
   };
 
-  /* ---------------- ADD SKILL TO EXISTING CATEGORY ---------------- */
-  const handleAddSkillToCategory = () => {
+  /* ---------- ADD SKILL (ADMIN ONLY) ---------- */
+  const handleAddSkill = async () => {
+    if (!isAdmin) {
+      alert("Admin access required ❌");
+      return;
+    }
+
     if (!selectedCategory || !newSkill) return;
 
-    const updated = {
-      ...extraSkills,
-      [selectedCategory]: [
-        ...(extraSkills[selectedCategory] || []),
-        newSkill,
-      ],
-    };
+    const existing = extraSkills[selectedCategory] || [];
 
-    setExtraSkills(updated);
-    localStorage.setItem("extra-skills", JSON.stringify(updated));
+    await supabase.from("skills").upsert({
+      title: selectedCategory,
+      skills: [...existing, newSkill],
+    });
 
-    setNewSkill("");
-    setSelectedCategory("");
+    await fetchSkills();
     setShowAddSkill(false);
+    setNewSkill("");
   };
 
-  /* ---------------- MERGED CATEGORIES ---------------- */
+  /* ---------- MERGED CATEGORIES ---------- */
   const allCategories: SkillCategory[] = [
-    ...staticCategories,
+    ...staticCategories.map(cat => ({
+      ...cat,
+      skills: [...cat.skills, ...(extraSkills[cat.title] || [])],
+    })),
     ...manualCategories,
   ];
 
@@ -161,11 +185,11 @@ const SkillsSection = () => {
             Technical <span className="gradient-text">Skills</span>
           </h2>
           <p className="text-muted-foreground text-lg">
-            Static skills + Admin managed skills
+            Core skills + admin-managed extensions
           </p>
         </motion.div>
 
-        {/* Admin Add Category Button */}
+        {/* Admin Add Category */}
         {isAdmin && (
           <div className="flex justify-center mb-10">
             <button
@@ -203,19 +227,17 @@ const SkillsSection = () => {
                 )}
 
                 <div className="flex flex-wrap gap-2">
-                  {[...category.skills, ...(extraSkills[category.title] || [])]
-                    .map((skill, i) => (
-                      <Badge
-                        key={i}
-                        variant="secondary"
-                        className="bg-primary/10 text-primary border border-primary/20"
-                      >
-                        {skill}
-                      </Badge>
-                    ))}
+                  {category.skills.map((skill, i) => (
+                    <Badge
+                      key={i}
+                      variant="secondary"
+                      className="bg-primary/10 text-primary border border-primary/20"
+                    >
+                      {skill}
+                    </Badge>
+                  ))}
                 </div>
 
-                {/* Admin Add Skill */}
                 {isAdmin && (
                   <button
                     onClick={() => {
@@ -232,7 +254,24 @@ const SkillsSection = () => {
           ))}
         </div>
 
-        {/* Add Category Modal */}
+        {/* Learning Note */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          viewport={{ once: true }}
+          className="text-center mt-12"
+        >
+          <Card className="glass-card p-6 max-w-2xl mx-auto">
+            <Bot className="w-8 h-8 text-primary mx-auto mb-3" />
+            <h3 className="text-lg font-semibold mb-2">Continuous Learning</h3>
+            <p className="text-muted-foreground text-sm">
+              Always exploring and expanding skills with evolving technologies.
+            </p>
+          </Card>
+        </motion.div>
+
+        {/* Modals */}
         {showAddCategory && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-background rounded-xl p-6 w-full max-w-md">
@@ -268,7 +307,6 @@ const SkillsSection = () => {
                 >
                   Cancel
                 </button>
-
                 <button
                   onClick={handleAddCategory}
                   className="flex-1 bg-primary text-white rounded py-2"
@@ -280,7 +318,6 @@ const SkillsSection = () => {
           </div>
         )}
 
-        {/* Add Skill Modal */}
         {showAddSkill && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-background rounded-xl p-6 w-full max-w-sm">
@@ -290,24 +327,20 @@ const SkillsSection = () => {
 
               <input
                 className="w-full mb-4 p-2 rounded border bg-background text-foreground"
-                placeholder="Skill name (e.g. Next.js)"
+                placeholder="Skill name"
                 value={newSkill}
                 onChange={e => setNewSkill(e.target.value)}
               />
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    setShowAddSkill(false);
-                    setNewSkill("");
-                  }}
+                  onClick={() => setShowAddSkill(false)}
                   className="flex-1 border rounded py-2"
                 >
                   Cancel
                 </button>
-
                 <button
-                  onClick={handleAddSkillToCategory}
+                  onClick={handleAddSkill}
                   className="flex-1 bg-primary text-white rounded py-2"
                 >
                   Add
@@ -316,23 +349,6 @@ const SkillsSection = () => {
             </div>
           </div>
         )}
-
-        {/* Learning Note */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          viewport={{ once: true }}
-          className="text-center mt-12"
-        >
-          <Card className="glass-card p-6 max-w-2xl mx-auto">
-            <Bot className="w-8 h-8 text-primary mx-auto mb-3" />
-            <h3 className="text-lg font-semibold mb-2">Continuous Learning</h3>
-            <p className="text-muted-foreground text-sm">
-              Always exploring and expanding skills with evolving technologies.
-            </p>
-          </Card>
-        </motion.div>
 
       </div>
     </section>
