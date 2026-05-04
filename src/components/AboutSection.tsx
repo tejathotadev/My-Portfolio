@@ -51,7 +51,7 @@ const AboutSection = () => {
             <Card className="glass-card p-6 hover:border-primary/30 transition-all duration-300">
               <h3 className="text-xl font-semibold mb-3 text-primary">The Journey</h3>
               <p className="text-muted-foreground leading-relaxed">
-                Currently pursuing my BTech in Computer Science Engineering, 
+                Completed my BTech in Computer Science Engineering, 
                 I am immersed in learning Data Science and AI/ML. 
                 What began as curiosity about how technology can solve real-world problems 
                 has grown into a passion for learning and building innovative, data-driven solutions.
