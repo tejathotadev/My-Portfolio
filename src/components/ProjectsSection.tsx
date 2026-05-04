@@ -29,6 +29,7 @@ const ProjectsSection = () => {
   const [skills, setSkills] = useState("");
   const [githubUrl, setGithubUrl] = useState("");
   const [demoUrl, setDemoUrl] = useState("");
+  const [hiddenRepos, setHiddenRepos] = useState<string[]>([]);
 
   /* ---------------- ADMIN STATE (GLOBAL SYNC) ---------------- */
   useEffect(() => {
@@ -102,6 +103,17 @@ const ProjectsSection = () => {
     loadAll();
   }, []);
 
+  useEffect(() => {
+  const stored = localStorage.getItem("hidden-repos");
+  if (stored) {
+    setHiddenRepos(JSON.parse(stored));
+  }
+}, []);
+
+useEffect(() => {
+  localStorage.setItem("hidden-repos", JSON.stringify(hiddenRepos));
+}, [hiddenRepos]);
+
   /* ---------------- ADD PROJECT ---------------- */
   const handleSaveProject = async () => {
     await supabase.from("projects").insert({
@@ -128,7 +140,10 @@ const ProjectsSection = () => {
     await fetchManualProjects();
   };
 
-  const projects: Project[] = [...manualProjects, ...githubProjects];
+const projects: Project[] = [
+  ...manualProjects,
+  ...githubProjects.filter(p => !hiddenRepos.includes(p.title))
+];
 
   return (
     <section id="projects" className="py-20 px-4">
@@ -174,10 +189,13 @@ const ProjectsSection = () => {
                 key={index}
                 {...project}
                 onDelete={
-                  isAdmin && project.isManual
-                    ? () => handleDeleteProject(project)
-                    : undefined
-                }
+                isAdmin
+                  ? () =>
+                      project.isManual
+                        ? handleDeleteProject(project)
+                        : setHiddenRepos(prev => [...prev, project.title])
+                  : undefined
+}
               />
             ))}
           </div>
