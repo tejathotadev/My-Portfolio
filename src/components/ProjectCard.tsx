@@ -63,16 +63,6 @@ const ProjectCard = ({
           </h3>
 
           <div className="flex gap-2">
-            {isPrivate && (
-              <Badge
-                variant="secondary"
-                className="flex items-center gap-1 bg-destructive/10 text-destructive border border-destructive/30"
-              >
-                <Lock className="w-3 h-3" />
-                Private
-              </Badge>
-            )}
-
             {isAdminProject && (
               <Badge
                 variant="secondary"
@@ -105,7 +95,7 @@ const ProjectCard = ({
 
         {/* Action Buttons */}
         <div className="flex gap-3 mt-auto">
-          {githubUrl ? (
+          {githubUrl && (
             <Button
               variant="glass"
               size="sm"
@@ -114,16 +104,6 @@ const ProjectCard = ({
             >
               <Github className="w-4 h-4 mr-2" />
               GitHub
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 cursor-not-allowed opacity-60"
-              disabled
-            >
-              <Lock className="w-4 h-4 mr-2" />
-              Private Repo
             </Button>
           )}
 
@@ -135,7 +115,7 @@ const ProjectCard = ({
               onClick={() => window.open(demoUrl, "_blank")}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
-              Live Demo
+              View Project Post
             </Button>
           )}
 
